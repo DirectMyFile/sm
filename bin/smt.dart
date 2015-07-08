@@ -15,12 +15,33 @@ main(List<String> args) async {
   var file = new File(args[0]);
   List<int> prog = parseTextualProgram(file.readAsStringSync());
 
-  var sm = new SM();
-  sm.syscalls[41] = (SMState sm) => stdout.add([sm.pop()]);
-  sm.syscalls[20] = (SMState sm) => sleep(new Duration(milliseconds: sm.pop()));
-  sm.syscalls[30] = (SMState sm) => sm.push(random.nextInt(100));
-  sm.syscalls[31] = (SMState sm) => sm.push(random.nextInt(sm.pop()));
-  await sm.exec(prog);
+  var vm = new SM();
+
+  String getStackString(SMState sm) {
+    var len = sm.pop();
+    var list = [];
+    for (var i = 0; i < len; i++) {
+      list.add(sm.pop());
+    }
+    return new String.fromCharCodes(list.reversed);
+  }
+
+  vm.syscalls[41] = (SMState sm) => stdout.add([sm.pop()]);
+  vm.syscalls[20] = (SMState sm) => sleep(new Duration(milliseconds: sm.pop()));
+  vm.syscalls[30] = (SMState sm) => sm.push(random.nextInt(100));
+  vm.syscalls[31] = (SMState sm) => sm.push(random.nextInt(sm.pop()));
+
+  vm.syscalls[91] = (SMState sm) {
+    var str = getStackString(sm);
+    stdout.write(str);
+  };
+
+  vm.syscalls[92] = (SMState sm) {
+    var str = getStackString(sm);
+    print(str);
+  };
+
+  await vm.exec(prog);
 }
 
 List<int> parseTextualProgram(String input) {
@@ -40,6 +61,19 @@ List<int> parseTextualProgram(String input) {
   var i = 0;
   while (i < lines.length) {
     var line = lines[i];
+
+    if (line.startsWith("% ")) {
+      var str = line.substring(2);
+      for (var cu in str.codeUnits) {
+        insts.add(INST_PSH);
+        insts.add(cu);
+      }
+
+      insts.add(INST_PSH);
+      insts.add(str.codeUnits.length);
+      i++;
+      continue;
+    }
 
     if (isInMacro && !line.startsWith(".")) {
       mlines.add(line);
