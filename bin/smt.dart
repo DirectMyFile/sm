@@ -17,6 +17,9 @@ main(List<String> args) async {
 
   var vm = new SM();
 
+  stdin.lineMode = false;
+  stdin.echoMode = false;
+
   String getStackString(SMState sm) {
     var len = sm.pop();
     var list = [];
@@ -26,10 +29,29 @@ main(List<String> args) async {
     return new String.fromCharCodes(list.reversed);
   }
 
+  Map<int, RawSocket> sockets = {};
+
+  var sockid = 0;
+
+  vm.syscalls[50] = (SMState sm) async {
+    var host = getStackString(sm);
+    var port = sm.pop();
+    var id = sockid++;
+    sockets[id] = await RawSocket.connect(host, port);
+    return id;
+  };
+  vm.syscalls[42] = (SMState sm) => sm.push(stdin.readByteSync());
   vm.syscalls[41] = (SMState sm) => stdout.add([sm.pop()]);
   vm.syscalls[20] = (SMState sm) => sleep(new Duration(milliseconds: sm.pop()));
   vm.syscalls[30] = (SMState sm) => sm.push(random.nextInt(100));
   vm.syscalls[31] = (SMState sm) => sm.push(random.nextInt(sm.pop()));
+  vm.syscalls[39] = (SMState sm) {
+    var count = sm.pop();
+    var val = sm.pop();
+    for (var i = 1; i <= count; i++) {
+      sm.push(val);
+    }
+  };
 
   vm.syscalls[91] = (SMState sm) {
     var str = getStackString(sm);
@@ -41,7 +63,14 @@ main(List<String> args) async {
     print(str);
   };
 
-  await vm.exec(prog);
+  try {
+    await vm.exec(prog);
+  } catch (e, stack) {
+    if (e is! SMError) {
+      rethrow;
+    }
+    print("\n\x1b[31mVM Error\x1b[0m: ${e.msg}");
+  }
 }
 
 List<int> parseTextualProgram(String input) {

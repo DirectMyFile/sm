@@ -29,6 +29,7 @@ const int INST_SYSC = 26; // Make a System Call
 const int INST_CPC = 27; // Copy Program Code to Stack
 const int INST_SDUP = 28; // Duplicate Entire Stack
 const int INST_EFLP = 29; // Flip Every Pair of Stack Values
+const int INST_FRK = 30; // Fork a Virtual Thread
 
 const int INSTR_SIZE = 2;
 
@@ -61,7 +62,8 @@ const Map<int, String> INST_NAMES = const {
   INST_SYSC: "SYSC",
   INST_CPC: "CPC",
   INST_SDUP: "SDUP",
-  INST_EFLP: "EFLP"
+  INST_EFLP: "EFLP",
+  INST_FRK: "FRK"
 };
 
 typedef void SysCall(SMState sm);
@@ -89,24 +91,36 @@ class SM {
   Map<int, int> registers = {};
   Map<int, SysCall> syscalls = {};
 
-  exec(List<int> program) async {
+  exec(List<int> program, [int pc = 0]) async {
+    threadCount++;
+
+    var thread = threadCount;
+
     for (var i = 0; i < program.length; i++) {
       if (program[i] == null) {
         program[i] = 0;
       }
     }
 
-    var pc = 0;
     var running = true;
+
+    status() {
+      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+        var stm = stack.take(30).join(", ");
+        if (stack.length > 30) {
+          stm += "...";
+        }
+
+        print("(Thread #${thread}, Thread Count: ${threadCount}, Program Counter: ${pc}, Stack Size: ${stack.length}) -> (${stm})");
+      }
+    }
 
     void jmp(int instn) {
       if (instn != 0) {
         instn = instn * INSTR_SIZE;
       }
 
-      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
-        print("-> ${stack}");
-      }
+      status();
 
       pc = instn;
     }
@@ -125,7 +139,7 @@ class SM {
 
       var inst = parts[0];
 
-      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+      if (const bool.fromEnvironment("pinsts", defaultValue: false)) {
         var l = parts.where((x) => x != null).toList();
         l[0] = INST_NAMES[l[0]];
         print(l.join(" "));
@@ -187,7 +201,7 @@ class SM {
             throw new Exception("Unknown System Call: ${cn}");
           }
           var state = new SMState(this, pc, program);
-          syscalls[cn](state);
+          await syscalls[cn](state);
           program = state.program;
           var oldPc = pc;
           pc = state.pc;
@@ -260,6 +274,9 @@ class SM {
         case INST_PSTK:
           print(stack);
           break;
+        case INST_FRK:
+          exec(program, (pc + 1) * 2);
+          break;
         case INST_LEAV:
           var rst = stacks.removeLast();
           stack = rst;
@@ -269,13 +286,14 @@ class SM {
           break;
       }
 
-      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
-        print("-> ${stack}");
-      }
+      status();
 
       pc += INSTR_SIZE;
     }
+    threadCount--;
   }
+
+  int threadCount = 0;
 
   void loadState(Map input) {
     stack = input["stack"];
@@ -291,5 +309,20 @@ class SM {
 
   void push(int x) => stack.add(x);
 
-  int pop() => stack.removeLast();
+  int pop() {
+    try {
+      return stack.removeLast();
+    } catch (e) {
+      throw new SMError("Stack is Empty");
+    }
+  }
+}
+
+class SMError {
+  final String msg;
+
+  SMError(this.msg);
+
+  @override
+  toString() => "VM Error: ${msg}";
 }

@@ -1,0 +1,5 @@
+FRK
+PSH 0
+JMP
+PSH 1
+PRNT
