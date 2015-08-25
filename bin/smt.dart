@@ -70,6 +70,9 @@ main(List<String> args) async {
       rethrow;
     }
     print("\n\x1b[31mVM Error\x1b[0m: ${e.msg}");
+    if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+      print(stack);
+    }
   }
 }
 

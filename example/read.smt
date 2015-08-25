@@ -7,9 +7,10 @@ SYSC
 PSH 42 # Syscall to Read Byte
 SYSC # Call
 DUP # Copy
+DUP # Copy
 PSH 10 # Newline
 PSH 17 # Read Another Byte
-JINE
+JIE
 SIZ
 PSH 91
 SYSC

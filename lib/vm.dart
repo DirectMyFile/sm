@@ -92,205 +92,221 @@ class SM {
   Map<int, SysCall> syscalls = {};
 
   exec(List<int> program, [int pc = 0]) async {
-    threadCount++;
+    try {
+      threadCount++;
 
-    var thread = threadCount;
+      var thread = threadCount;
 
-    for (var i = 0; i < program.length; i++) {
-      if (program[i] == null) {
-        program[i] = 0;
+      for (var i = 0; i < program.length; i++) {
+        if (program[i] == null) {
+          program[i] = 0;
+        }
       }
-    }
 
-    var running = true;
+      var running = true;
 
-    status() {
-      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
-        var stm = stack.take(30).join(", ");
-        if (stack.length > 30) {
-          stm += "...";
+      status() {
+        if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+          var stm = stack.take(30).join(", ");
+          if (stack.length > 30) {
+            stm += "...";
+          }
+
+          var buff = new StringBuffer("(Thread #${thread}, ");
+          inf(String key, value, [bool x = true]) {
+            buff.write("${key}: ${value}");
+            if (x) {
+              buff.write(", ");
+            }
+          }
+          inf("Thread Count", threadCount);
+          inf("Program Counter", pc ~/ 2);
+          inf("Stack Size", stack.length, false);
+          buff.write(") -> (${stm})");
+          print(buff.toString());
+        }
+      }
+
+      void jmp(int instn) {
+        if (instn != 0) {
+          instn = instn * INSTR_SIZE;
         }
 
-        print("(Thread #${thread}, Thread Count: ${threadCount}, Program Counter: ${pc}, Stack Size: ${stack.length}) -> (${stm})");
-      }
-    }
+        status();
 
-    void jmp(int instn) {
-      if (instn != 0) {
-        instn = instn * INSTR_SIZE;
+        pc = instn;
       }
 
-      status();
+      iloop: while (running) {
+        await null; // Allows for multiple programs at a time.
+        List<int> parts;
 
-      pc = instn;
-    }
-
-    iloop: while (running) {
-      await null; // Allows for multiple programs at a time.
-      List<int> parts;
-
-      try {
-        parts = program.skip(pc).take(INSTR_SIZE).toList();
-        parts[1];
-      } catch (e) {
-        running = false;
-        break;
-      }
-
-      var inst = parts[0];
-
-      if (const bool.fromEnvironment("pinsts", defaultValue: false)) {
-        var l = parts.where((x) => x != null).toList();
-        l[0] = INST_NAMES[l[0]];
-        print(l.join(" "));
-      }
-
-      switch (inst) {
-        case INST_HLT:
+        try {
+          parts = program.skip(pc).take(INSTR_SIZE).toList();
+          parts[1];
+        } catch (e) {
           running = false;
           break;
-        case INST_PSH:
-          push(parts[1]);
-          break;
-        case INST_CRS:
-          var regn = pop();
-          push(registers[regn]);
-          break;
-        case INST_SDUP:
-          stack.addAll(stack.toList());
-          break;
-        case INST_ENTR:
-          stacks.add(stack);
-          stack = new List<int>();
-          break;
-        case INST_SRV:
-          var regn = pop();
-          var val = pop();
-          registers[regn] = val;
-          break;
-        case INST_ADD:
-          push(pop() + pop());
-          break;
-        case INST_EFLP:
-          var flipped = [];
+        }
 
-          for (var i = 0; i < stack.length; i += 2) {
-            if (i + 1 != stack.length) {
-              flipped.add(stack[i + 1]);
+        var inst = parts[0];
+
+        if (const bool.fromEnvironment("pinsts", defaultValue: false)) {
+          var l = parts.where((x) => x != null).toList();
+          l[0] = INST_NAMES[l[0]];
+          print(l.join(" "));
+        }
+
+        switch (inst) {
+          case INST_HLT:
+            running = false;
+            break;
+          case INST_PSH:
+            push(parts[1]);
+            break;
+          case INST_CRS:
+            var regn = pop();
+            push(registers[regn]);
+            break;
+          case INST_SDUP:
+            stack.addAll(stack.toList());
+            break;
+          case INST_ENTR:
+            stacks.add(stack);
+            stack = new List<int>();
+            break;
+          case INST_SRV:
+            var regn = pop();
+            var val = pop();
+            registers[regn] = val;
+            break;
+          case INST_ADD:
+            push(pop() + pop());
+            break;
+          case INST_EFLP:
+            var flipped = [];
+
+            for (var i = 0; i < stack.length; i += 2) {
+              if (i + 1 != stack.length) {
+                flipped.add(stack[i + 1]);
+              }
+              flipped.add(stack[i]);
             }
-            flipped.add(stack[i]);
-          }
 
-          stack = flipped;
+            stack = flipped;
 
-          break;
-        case INST_SUB:
-          var l = pop();
-          push(pop() - l);
-          break;
-        case INST_CLR:
-          stack.clear();
-          break;
-        case INST_JMP:
-          jmp(pop());
-          continue iloop;
-          break;
-        case INST_SYSC:
-          var cn = pop();
-          if (!syscalls.containsKey(cn)) {
-            throw new Exception("Unknown System Call: ${cn}");
-          }
-          var state = new SMState(this, pc, program);
-          await syscalls[cn](state);
-          program = state.program;
-          var oldPc = pc;
-          pc = state.pc;
-          if (pc != oldPc) {
+            break;
+          case INST_SUB:
+            var l = pop();
+            push(pop() - l);
+            break;
+          case INST_CLR:
+            stack.clear();
+            break;
+          case INST_JMP:
+            jmp(pop());
             continue iloop;
-          }
-          break;
-        case INST_NOP:
-          break;
-        case INST_MULT:
-          push(pop() * pop());
-          break;
-        case INST_RSET:
-          stack.clear();
-          stacks.clear();
-          registers.clear();
-          jmp(0);
-          continue iloop;
-          break;
-        case INST_FLP:
-          var x = pop();
-          var y = pop();
-          push(x);
-          push(y);
-          break;
-        case INST_POP:
-          pop();
-          break;
-        case INST_EVAL:
-          exec(stack);
-          break;
-        case INST_SHFT:
-          var val = pop();
-          stack.insert(0, val);
-          break;
-        case INST_SIZ:
-          push(stack.length);
-          break;
-        case INST_JINE:
-          var instn = pop();
-          if (pop() != pop()) {
-            jmp(instn);
+            break;
+          case INST_SYSC:
+            var cn = pop();
+            if (!syscalls.containsKey(cn)) {
+              throw new Exception("Unknown System Call: ${cn}");
+            }
+            var state = new SMState(this, pc, program);
+            await syscalls[cn](state);
+            program = state.program;
+            var oldPc = pc;
+            pc = state.pc;
+            if (pc != oldPc) {
+              continue iloop;
+            }
+            break;
+          case INST_NOP:
+            break;
+          case INST_MULT:
+            push(pop() * pop());
+            break;
+          case INST_RSET:
+            stack.clear();
+            stacks.clear();
+            registers.clear();
+            jmp(0);
             continue iloop;
-          }
-          break;
-        case INST_DUP:
-          var result = pop();
-          push(result);
-          push(result);
-          break;
-        case INST_CPC:
-          stack.addAll(program);
-          break;
-        case INST_ROT:
-          stack = stack.reversed.toList();
-          break;
-        case INST_OIEE:
-          var left = pop();
-          var right = pop();
-          var of = pop();
-          push((left == of || right == of) ? 1 : 0);
-          break;
-        case INST_JIE:
-          var instn = pop();
-          if (pop() == pop()) {
-            jmp(instn);
-            continue iloop;
-          }
-          break;
-        case INST_PSTK:
-          print(stack);
-          break;
-        case INST_FRK:
-          exec(program, (pc + 1) * 2);
-          break;
-        case INST_LEAV:
-          var rst = stacks.removeLast();
-          stack = rst;
-          break;
-        case INST_PRNT:
-          print(pop());
-          break;
+            break;
+          case INST_FLP:
+            var x = pop();
+            var y = pop();
+            push(x);
+            push(y);
+            break;
+          case INST_POP:
+            pop();
+            break;
+          case INST_EVAL:
+            exec(stack);
+            break;
+          case INST_SHFT:
+            var val = pop();
+            stack.insert(0, val);
+            break;
+          case INST_SIZ:
+            push(stack.length);
+            break;
+          case INST_JINE:
+            var instn = pop();
+            if (pop() != pop()) {
+              jmp(instn);
+              continue iloop;
+            }
+            break;
+          case INST_DUP:
+            var result = pop();
+            push(result);
+            push(result);
+            break;
+          case INST_CPC:
+            stack.addAll(program);
+            break;
+          case INST_ROT:
+            stack = stack.reversed.toList();
+            break;
+          case INST_OIEE:
+            var left = pop();
+            var right = pop();
+            var of = pop();
+            push((left == of || right == of) ? 1 : 0);
+            break;
+          case INST_JIE:
+            var instn = pop();
+            if (pop() == pop()) {
+              jmp(instn);
+              continue iloop;
+            }
+            break;
+          case INST_PSTK:
+            print(stack);
+            break;
+          case INST_FRK:
+            exec(program, (pc + 1) * 2);
+            break;
+          case INST_LEAV:
+            var rst = stacks.removeLast();
+            stack = rst;
+            break;
+          case INST_PRNT:
+            print(pop());
+            break;
+        }
+
+        status();
+
+        pc += INSTR_SIZE;
       }
-
-      status();
-
-      pc += INSTR_SIZE;
+      threadCount--;
+    } on SMError catch (e) {
+      e.pc = pc ~/ 2;
+      rethrow;
     }
-    threadCount--;
   }
 
   int threadCount = 0;
@@ -319,10 +335,17 @@ class SM {
 }
 
 class SMError {
-  final String msg;
+  String msg;
+  int pc;
 
   SMError(this.msg);
 
   @override
-  toString() => "VM Error: ${msg}";
+  toString() {
+    if (pc != null) {
+      return "VM Error at program counter ${pc}: ${msg}";
+    } else {
+      return "VM Error: ${msg}";
+    }
+  }
 }

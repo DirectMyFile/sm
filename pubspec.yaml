@@ -1,3 +1,6 @@
 name: sm
 description: Simple Virtual Machine
 version: 0.1.0
+dependencies:
+  ace: "^0.6.2+3.4.15"
+  browser: any
