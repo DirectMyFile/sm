@@ -1,0 +1,6 @@
+% Hello World
+CENTR
+ROT
+PSTK
+LEAV
+PSTK

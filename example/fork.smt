@@ -1,5 +1,3 @@
-FRK
-PSH 0
-JMP
-PSH 1
-PRNT
+% Hello World # Load Hello World into Stack
+FRK # Fork a Thread
+PSTK # Print Stack

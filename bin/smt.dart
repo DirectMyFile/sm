@@ -74,6 +74,10 @@ main(List<String> args) async {
       print(stack);
     }
   }
+
+  if (const bool.fromEnvironment("save.state")) {
+    print(vm.saveState());
+  }
 }
 
 List<int> parseTextualProgram(String input) {

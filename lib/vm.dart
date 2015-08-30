@@ -30,6 +30,8 @@ const int INST_CPC = 27; // Copy Program Code to Stack
 const int INST_SDUP = 28; // Duplicate Entire Stack
 const int INST_EFLP = 29; // Flip Every Pair of Stack Values
 const int INST_FRK = 30; // Fork a Virtual Thread
+const int INST_SPI = 31; // Set Program Instruction
+const int INST_CENTR = 32; // Copy Current Stack to a New Stack and Enter It
 
 const int INSTR_SIZE = 2;
 
@@ -63,7 +65,9 @@ const Map<int, String> INST_NAMES = const {
   INST_CPC: "CPC",
   INST_SDUP: "SDUP",
   INST_EFLP: "EFLP",
-  INST_FRK: "FRK"
+  INST_FRK: "FRK",
+  INST_SPI: "SPI",
+  INST_CENTR: "CENTR"
 };
 
 typedef void SysCall(SMState sm);
@@ -96,6 +100,11 @@ class SM {
       threadCount++;
 
       var thread = threadCount;
+      var ic = program.skip(pc).length ~/ 2;
+
+      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+        print("(Thread #${thread} Started, ${ic} instruction${ic > 1 ? "s" : ''})");
+      }
 
       for (var i = 0; i < program.length; i++) {
         if (program[i] == null) {
@@ -143,6 +152,12 @@ class SM {
 
         try {
           parts = program.skip(pc).take(INSTR_SIZE).toList();
+
+          if (parts.isEmpty) {
+            running = false;
+            break;
+          }
+
           parts[1];
         } catch (e) {
           running = false;
@@ -154,7 +169,8 @@ class SM {
         if (const bool.fromEnvironment("pinsts", defaultValue: false)) {
           var l = parts.where((x) => x != null).toList();
           l[0] = INST_NAMES[l[0]];
-          print(l.join(" "));
+          l[1] = l[0] == "PSH" ? l[1] : "";
+          print("(Thread #${thread}) -> ${l.join(" ").trim()}");
         }
 
         switch (inst) {
@@ -233,6 +249,11 @@ class SM {
             jmp(0);
             continue iloop;
             break;
+          case INST_CENTR:
+            var ns = new List<int>.from(stack);
+            stacks.add(stack);
+            stack = ns;
+            break;
           case INST_FLP:
             var x = pop();
             var y = pop();
@@ -287,7 +308,7 @@ class SM {
             print(stack);
             break;
           case INST_FRK:
-            exec(program, (pc + 1) * 2);
+            exec(program, pc + 2);
             break;
           case INST_LEAV:
             var rst = stacks.removeLast();
@@ -296,6 +317,9 @@ class SM {
           case INST_PRNT:
             print(pop());
             break;
+          case INST_SPI:
+            program[pop()] = pop();
+            break;
         }
 
         status();
@@ -303,8 +327,11 @@ class SM {
         pc += INSTR_SIZE;
       }
       threadCount--;
+      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+        print("(Thread #${thread} Complete)");
+      }
     } on SMError catch (e) {
-      e.pc = pc ~/ 2;
+      e.pc = pc ~/ INSTR_SIZE;
       rethrow;
     }
   }
