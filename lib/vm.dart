@@ -1,5 +1,7 @@
 library sm.vm;
 
+import "dart:async";
+
 const int INST_HLT = 1; // Halt Program
 const int INST_PSH = 2; // Push Value to Stack
 const int INST_POP = 3; // Pop Value from Stack
@@ -95,6 +97,10 @@ class SM {
   Map<int, int> registers = {};
   Map<int, SysCall> syscalls = {};
 
+  Function printFunction = (input) {
+    print(input);
+  };
+
   exec(List<int> program, [int pc = 0]) async {
     try {
       threadCount++;
@@ -103,7 +109,7 @@ class SM {
       var ic = program.skip(pc).length ~/ 2;
 
       if (const bool.fromEnvironment("verbose", defaultValue: false)) {
-        print("(Thread #${thread} Started, ${ic} instruction${ic > 1 ? "s" : ''})");
+        printFunction("(Thread #${thread} Started, ${ic} instruction${ic > 1 ? "s" : ''})");
       }
 
       for (var i = 0; i < program.length; i++) {
@@ -132,7 +138,7 @@ class SM {
           inf("Program Counter", pc ~/ 2);
           inf("Stack Size", stack.length, false);
           buff.write(") -> (${stm})");
-          print(buff.toString());
+          printFunction(buff.toString());
         }
       }
 
@@ -147,7 +153,7 @@ class SM {
       }
 
       iloop: while (running) {
-        await null; // Allows for multiple programs at a time.
+        await null;
         List<int> parts;
 
         try {
@@ -170,7 +176,7 @@ class SM {
           var l = parts.where((x) => x != null).toList();
           l[0] = INST_NAMES[l[0]];
           l[1] = l[0] == "PSH" ? l[1] : "";
-          print("(Thread #${thread}) -> ${l.join(" ").trim()}");
+          printFunction("(Thread #${thread}) -> ${l.join(" ").trim()}");
         }
 
         switch (inst) {
@@ -305,7 +311,7 @@ class SM {
             }
             break;
           case INST_PSTK:
-            print(stack);
+            printFunction(stack);
             break;
           case INST_FRK:
             exec(program, pc + 2);
@@ -315,7 +321,7 @@ class SM {
             stack = rst;
             break;
           case INST_PRNT:
-            print(pop());
+            printFunction(pop());
             break;
           case INST_SPI:
             program[pop()] = pop();
@@ -328,7 +334,7 @@ class SM {
       }
       threadCount--;
       if (const bool.fromEnvironment("verbose", defaultValue: false)) {
-        print("(Thread #${thread} Complete)");
+        printFunction("(Thread #${thread} Complete)");
       }
     } on SMError catch (e) {
       e.pc = pc ~/ INSTR_SIZE;
