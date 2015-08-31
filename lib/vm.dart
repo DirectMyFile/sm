@@ -101,6 +101,8 @@ class SM {
     print(input);
   };
 
+  bool verbose = const bool.fromEnvironment("verbose", defaultValue: false);
+
   exec(List<int> program, [int pc = 0]) async {
     try {
       threadCount++;
@@ -108,7 +110,7 @@ class SM {
       var thread = threadCount;
       var ic = program.skip(pc).length ~/ 2;
 
-      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+      if (verbose) {
         printFunction("(Thread #${thread} Started, ${ic} instruction${ic > 1 ? "s" : ''})");
       }
 
@@ -121,7 +123,7 @@ class SM {
       var running = true;
 
       status() {
-        if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+        if (verbose) {
           var stm = stack.take(30).join(", ");
           if (stack.length > 30) {
             stm += "...";
@@ -153,7 +155,7 @@ class SM {
       }
 
       iloop: while (running) {
-        await null;
+        await Future.wait([]);
         List<int> parts;
 
         try {
@@ -333,7 +335,7 @@ class SM {
         pc += INSTR_SIZE;
       }
       threadCount--;
-      if (const bool.fromEnvironment("verbose", defaultValue: false)) {
+      if (verbose) {
         printFunction("(Thread #${thread} Complete)");
       }
     } on SMError catch (e) {
