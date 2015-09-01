@@ -57,7 +57,7 @@ const String FIB = """\
 PSH 0
 PSH 1
 SRV
-PSH 20 # Input
+PSH 5 # Input
 DUP
 PSH 2
 SRV
