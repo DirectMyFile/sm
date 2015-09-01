@@ -102,6 +102,7 @@ class SM {
   };
 
   bool verbose = const bool.fromEnvironment("verbose", defaultValue: false);
+  bool concurrent = identical(0, 0.0);
 
   exec(List<int> program, [int pc = 0]) async {
     try {
@@ -155,7 +156,10 @@ class SM {
       }
 
       iloop: while (running) {
-        await Future.wait([]);
+        if (concurrent) {
+          await new Future.delayed(Duration.ZERO);
+        }
+
         List<int> parts;
 
         try {
@@ -317,6 +321,7 @@ class SM {
             break;
           case INST_FRK:
             exec(program, pc + 2);
+            concurrent = true;
             break;
           case INST_LEAV:
             var rst = stacks.removeLast();

@@ -67,7 +67,7 @@ const String TEMPLATE = r"""
 import "package:sm/vm.dart";
 import "package:sm/io.dart";
 
-const List<int> program = const [
+final List<int> program = [
   {{program}}
 ];
 

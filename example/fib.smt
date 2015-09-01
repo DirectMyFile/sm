@@ -1,7 +1,7 @@
 PSH 0
 PSH 1
 SRV
-PSH 20 # Input
+PSH 30 # Input
 DUP
 PSH 2
 SRV
