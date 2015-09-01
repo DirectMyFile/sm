@@ -160,5 +160,9 @@ execute(String input, bool verbose) async {
   };
 
   vm.verbose = verbose;
-  await vm.exec(program);
+  try {
+    await vm.exec(program);
+  } catch (e, stack) {
+    await vm.printFunction("VM Error: " + e.toString() + "\n" + stack.toString() + "\n");
+  }
 }
