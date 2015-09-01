@@ -79,6 +79,10 @@ List<int> parseTextualProgram(String input) {
           throw new Exception("Unknown Instruction: ${n}");
         }).toString();
       }
+
+      if (p.startsWith("!")) {
+        parts[i] = p.substring(1).codeUnitAt(0).toString();
+      }
     }
 
     var inst = int.parse(parts[0], onError: (s) => null);
