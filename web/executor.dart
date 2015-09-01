@@ -159,6 +159,14 @@ execute(String input, bool verbose) async {
     window.alert(getStackString(state));
   };
 
+  vm.syscalls[10] = (SMState state) {
+    state.push(window.screen.width);
+  };
+
+  vm.syscalls[11] = (SMState state) {
+    state.push(window.screen.height);
+  };
+
   vm.verbose = verbose;
   try {
     await vm.exec(program);
