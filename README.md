@@ -58,3 +58,12 @@ FRK (30): Fork a Virtual Thread
 SPI (31): Set Program Instruction
 CENTR (32): Copy Current Stack to a New Stack and Enter It
 ```
+
+## Serving the web interface
+
+The interface will be available [here](http://localhost:8080/try.html) after you run the following.
+
+```
+pub get
+pub serve
+```
