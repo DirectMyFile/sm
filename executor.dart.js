@@ -3928,7 +3928,7 @@ s=window
 r=P
 r=r
 q=P
-t.au(s,r.N(["examples",q.N(["Countdown","PSH 5 # Starting Point\nDUP # Duplicate\nPRNT # Print Value\nPSH 1 # Push 1\nSUB # Subtract 1 from the Value\nDUP # Duplicate\nPSH 0 # Push 0\nPSH 11 # Push 11\nJIE # Jump to End\nPSH 1 # Instruction 1\nJMP # Jump to Instruction 1\nHLT # Halt\n","Fibonacci Sequence","PSH 0\nPSH 1\nSRV\nPSH 20 # Input\nDUP\nPSH 2\nSRV\nDUP\nPSH 0\nPSH 1\nOIEE\nPSH 1\nPSH 26\nJIE\nSIZ\nPSH 0\nPSH 34\nJIE\nDUP\nPSH 1\nSUB\nFLP\nPSH 2\nSUB\nPSH 7\nJMP\nPSH 1\nCRS\nPSH 1\nADD\nPSH 1\nSRV\nPSH 8\nJMP\nPSH 1\nCRS\nPRNT\n","Stacks","% Hello World\nCENTR\nROT\nPSTK\nLEAV\nPSTK\n","Program Code","# Reverse the Instructions of the Program\nCPC # Copy program to the Stack\nROT # Reverse the Stack\nEFLP # Flip each Pair\nPSTK # Print the Stack\n"])]),"*")
+t.au(s,r.N(["examples",q.N(["Countdown","PSH 5 # Starting Point\nDUP # Duplicate\nPRNT # Print Value\nPSH 1 # Push 1\nSUB # Subtract 1 from the Value\nDUP # Duplicate\nPSH 0 # Push 0\nPSH 11 # Push 11\nJIE # Jump to End\nPSH 1 # Instruction 1\nJMP # Jump to Instruction 1\nHLT # Halt\n","Fibonacci Sequence","PSH 0\nPSH 1\nSRV\nPSH 5 # Input\nDUP\nPSH 2\nSRV\nDUP\nPSH 0\nPSH 1\nOIEE\nPSH 1\nPSH 26\nJIE\nSIZ\nPSH 0\nPSH 34\nJIE\nDUP\nPSH 1\nSUB\nFLP\nPSH 2\nSUB\nPSH 7\nJMP\nPSH 1\nCRS\nPSH 1\nADD\nPSH 1\nSRV\nPSH 8\nJMP\nPSH 1\nCRS\nPRNT\n","Stacks","% Hello World\nCENTR\nROT\nPSTK\nLEAV\nPSTK\n","Program Code","# Reverse the Instructions of the Program\nCPC # Copy program to the Stack\nROT # Reverse the Stack\nEFLP # Flip each Pair\nPSTK # Print the Stack\n"])]),"*")
 t=C
 t=t.f
 t=t
