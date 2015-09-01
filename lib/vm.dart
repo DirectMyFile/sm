@@ -102,7 +102,7 @@ class SM {
   };
 
   bool verbose = const bool.fromEnvironment("verbose", defaultValue: false);
-  bool concurrent = identical(0, 0.0);
+  bool concurrent = false;
 
   exec(List<int> program, [int pc = 0]) async {
     try {
@@ -158,9 +158,14 @@ class SM {
       var inst = null;
       var extra = null;
 
+      var cn = 0;
       iloop: while (running) {
         if (concurrent) {
-          await new Future.delayed(Duration.ZERO);
+          cn++;
+          if (cn >= 5) {
+            await new Future.delayed(Duration.ZERO);
+            cn = 0;
+          }
         }
 
         try {
