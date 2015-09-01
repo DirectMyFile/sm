@@ -1,4 +1,6 @@
+import "dart:async";
 import "dart:io";
+import "dart:isolate";
 
 import "package:sm/smt.dart";
 
@@ -41,7 +43,22 @@ main(List<String> args) async {
       exit(1);
     }
     var outFile = new File("${dir.path}/out.dart");
-    await outFile.rename("${Directory.current.path}/out.dart");
+    outFile = await outFile.rename("${Directory.current.path}/out.dart");
+
+    if (args.contains("--snapshot")) {
+      await generateSnapshotFile("${Directory.current.path}/out.snapshot", outFile.path);
+      await outFile.delete();
+      outFile = new File(outFile.path.replaceAll(".dart", ".snapshot"));
+    }
+
+    if (args.contains("--run")) {
+      var isolate = await Isolate.spawnUri(outFile.uri, [], null);
+      await outFile.delete();
+      var port = new ReceivePort();
+      isolate.addOnExitListener(port.sendPort);
+      await port.first;
+    }
+
     await dir.delete(recursive: true);
   }
 }
@@ -78,3 +95,24 @@ main() async {
   await io.teardown();
 }
 """;
+
+Future generateSnapshotFile(String target, String input) async {
+  var result = await Process.run(getDartExecutable(), [
+    "--snapshot=${target}",
+    input
+  ]);
+
+  if (result.exitCode != 0) {
+    throw new Exception("Failed to generate snapshot for ${input}.");
+  }
+}
+
+String getDartExecutable() {
+  String dartExe;
+  try {
+    dartExe = Platform.resolvedExecutable;
+  } catch (e) {
+    dartExe = Platform.executable.isNotEmpty ? Platform.executable : "dart";
+  }
+  return dartExe;
+}
