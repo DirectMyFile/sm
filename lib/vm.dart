@@ -163,8 +163,16 @@ class SM {
           await new Future.delayed(Duration.ZERO);
         }
 
-        inst = program[pc];
-        extra = program[pc + 1];
+        try {
+          inst = program[pc];
+        } catch (e) {
+          running = false;
+          break;
+        }
+
+        try {
+          extra = program[pc + 1];
+        } catch (e) {}
 
         if (const bool.fromEnvironment("pinsts", defaultValue: false)) {
           var l = [inst, extra == null ? 0 : extra];

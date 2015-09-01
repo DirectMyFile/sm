@@ -11,7 +11,12 @@ DUP # Copy
 PSH 10 # Newline
 PSH 17 # Read Another Byte
 JIE
+POP
 SIZ
+PSH 91
+SYSC
+PSH 10
+PSH 1
 PSH 91
 SYSC
 PSH 0
