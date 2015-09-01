@@ -155,31 +155,19 @@ class SM {
         pc = instn;
       }
 
+      var inst = null;
+      var extra = null;
+
       iloop: while (running) {
         if (concurrent) {
           await new Future.delayed(Duration.ZERO);
         }
 
-        List<int> parts;
-
-        try {
-          parts = program.skip(pc).take(INSTR_SIZE).toList();
-
-          if (parts.isEmpty) {
-            running = false;
-            break;
-          }
-
-          parts[1];
-        } catch (e) {
-          running = false;
-          break;
-        }
-
-        var inst = parts[0];
+        inst = program[pc];
+        extra = program[pc + 1];
 
         if (const bool.fromEnvironment("pinsts", defaultValue: false)) {
-          var l = parts.where((x) => x != null).toList();
+          var l = [inst, extra == null ? 0 : extra];
           l[0] = INST_NAMES[l[0]];
           l[1] = l[0] == "PSH" ? l[1] : "";
           printFunction("(Thread #${thread}) -> ${l.join(" ").trim()}");
@@ -190,7 +178,7 @@ class SM {
             running = false;
             break;
           case INST_PSH:
-            push(parts[1]);
+            push(extra);
             break;
           case INST_CRS:
             var regn = pop();
