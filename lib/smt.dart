@@ -92,7 +92,7 @@ List<int> parseTextualProgram(String input) {
     if (parts.length == 2) {
       insts.add(int.parse(parts[1]));
     } else {
-      insts.add(null);
+      insts.add(0);
     }
     i++;
   }
